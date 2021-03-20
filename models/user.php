@@ -30,6 +30,7 @@ class User implements IUser  {
   }
 
   function isEmailValid() {
+      
     return filter_var($this->email, FILTER_VALIDATE_EMAIL);
   }
 }

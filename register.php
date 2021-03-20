@@ -1,101 +1,47 @@
 <?php
-include "repository.php";
-
-
+include "repositories/user-repository.php";
+include "utils.php";
+include "models/user.php";
 
 $error_message = "";
 $success_message = "";
 
-interface IUser {
-  public function areAllFieldsFilledIn();
-}
-
-class User implements IUser  {
-  public $firstName;
-  public $lastName;
-  public $email;
-  public $password;
-  public $confirmPassword;
-
-  function areAllFieldsFilledIn() {
-    return $this->firstName == '' || $this->lastName == '' || $this->email == '' || $this->password == '' || $this->confirmpassword == '';
-  }
-
-  function isConfirmPasswordMatching(){
-    return $this->password != $this->confirmpassword;
-  }
-
-  function isEmailUnique() {
-    $stmt = $con->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $stmt->close();
-    return $result->num_rows > 0;
-  }
-
-}
-
 // Register user
 if(isset($_POST['btnsignup'])){
-   $fname = trim($_POST['first_name']);
-   $lname = trim($_POST['last_name']);
-   $email = trim($_POST['email']);
-   $password = trim($_POST['password']);
-   $confirmpassword = trim($_POST['confirmpassword']);
+
+   $user = new User(trim($_POST['first_name']), trim($_POST['last_name']), trim($_POST['email']), 
+          trim($_POST['password']), trim($_POST['confirmpassword']));
 
    $isValid = true;
 
-   // Check fields are empty or not
-   if($fname == '' || $lname == '' || $email == '' || $password == '' || $confirmpassword == ''){
+   if(!$user->areAllFieldsFilledIn()){
      $isValid = false;
      $error_message = "Please fill all fields.";
    }
 
-   // Check if confirm password matching or not
-   if($isValid && ($password != $confirmpassword)){
+   if($isValid && !$user->isConfirmPasswordMatching()){
      $isValid = false;
      $error_message = "Confirm password not matching";
    }
 
-   // Check if Email-ID is valid or not
-   if ($isValid && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+   if ($isValid && !$user->isEmailValid()) {
      $isValid = false;
      $error_message = "Invalid Email-ID.";
    }
 
-   echo "test tolea";
    if($isValid){
-
-     // Check if Email-ID already exists
-    //  $stmt = $con->prepare("SELECT * FROM users WHERE email = ?");
-    //  $stmt->bind_param("s", $email);
-    //  $stmt->execute();
-    //  $result = $stmt->get_result();
-    //  $stmt->close();
-    //  if($result->num_rows > 0){
-    //    $isValid = false;
-    //    $error_message = "Email-ID is already existed.";
-    //  }
-
      $userRepository = new UserRepository();
-
-     $emailAlreadyExists = $userRepository->getByEmail()->num_rows > 0;
+     $emailAlreadyExists = $userRepository->getByEmail($user->email)->num_rows > 0;
+     console_log($emailAlreadyExists);
      if($emailAlreadyExists) {
       $isValid = false;
-      $error_message = "Email-ID is already existed.";
+      $error_message = "Email already exists!";
      }
    }
 
-   // Insert records
    if($isValid){
-    //  $insertSQL = "INSERT INTO users(first_name,last_name,email,password ) values(?,?,?,?)";
-    //  $stmt = $con->prepare($insertSQL);
-    //  $stmt->bind_param("ssss",$fname,$lname,$email,$password);
-    //  $stmt->execute();
-    //  $stmt->close();
-
-    //  $success_message = "Account created successfully.";
+     $userRepository->add($user);
+     $success_message = "Account created successfully.";
    }
 }
 
@@ -415,9 +361,11 @@ include 'header.php';
                             <input name="confirmpassword" class="form-control" type="password">
                         </div> <!-- form-group end.// -->  
                     </div>
+                    <span style="color: red">
                     <?php 
                         echo $error_message 
                     ?>
+                    </span>
 
                     <div class="form-group">
                         <button type="submit" name="btnsignup" class="btn btn-dark btn-block"> Register  </button>

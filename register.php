@@ -1,9 +1,40 @@
 <?php
-include "config.php";
+include "repository.php";
+
 
 
 $error_message = "";
 $success_message = "";
+
+interface IUser {
+  public function areAllFieldsFilledIn();
+}
+
+class User implements IUser  {
+  public $firstName;
+  public $lastName;
+  public $email;
+  public $password;
+  public $confirmPassword;
+
+  function areAllFieldsFilledIn() {
+    return $this->firstName == '' || $this->lastName == '' || $this->email == '' || $this->password == '' || $this->confirmpassword == '';
+  }
+
+  function isConfirmPasswordMatching(){
+    return $this->password != $this->confirmpassword;
+  }
+
+  function isEmailUnique() {
+    $stmt = $con->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $stmt->close();
+    return $result->num_rows > 0;
+  }
+
+}
 
 // Register user
 if(isset($_POST['btnsignup'])){
@@ -33,30 +64,38 @@ if(isset($_POST['btnsignup'])){
      $error_message = "Invalid Email-ID.";
    }
 
+   echo "test tolea";
    if($isValid){
 
      // Check if Email-ID already exists
-     $stmt = $con->prepare("SELECT * FROM users WHERE email = ?");
-     $stmt->bind_param("s", $email);
-     $stmt->execute();
-     $result = $stmt->get_result();
-     $stmt->close();
-     if($result->num_rows > 0){
-       $isValid = false;
-       $error_message = "Email-ID is already existed.";
-     }
+    //  $stmt = $con->prepare("SELECT * FROM users WHERE email = ?");
+    //  $stmt->bind_param("s", $email);
+    //  $stmt->execute();
+    //  $result = $stmt->get_result();
+    //  $stmt->close();
+    //  if($result->num_rows > 0){
+    //    $isValid = false;
+    //    $error_message = "Email-ID is already existed.";
+    //  }
 
+     $userRepository = new UserRepository();
+
+     $emailAlreadyExists = $userRepository->getByEmail()->num_rows > 0;
+     if($emailAlreadyExists) {
+      $isValid = false;
+      $error_message = "Email-ID is already existed.";
+     }
    }
 
    // Insert records
    if($isValid){
-     $insertSQL = "INSERT INTO users(first_name,last_name,email,password ) values(?,?,?,?)";
-     $stmt = $con->prepare($insertSQL);
-     $stmt->bind_param("ssss",$fname,$lname,$email,$password);
-     $stmt->execute();
-     $stmt->close();
+    //  $insertSQL = "INSERT INTO users(first_name,last_name,email,password ) values(?,?,?,?)";
+    //  $stmt = $con->prepare($insertSQL);
+    //  $stmt->bind_param("ssss",$fname,$lname,$email,$password);
+    //  $stmt->execute();
+    //  $stmt->close();
 
-     $success_message = "Account created successfully.";
+    //  $success_message = "Account created successfully.";
    }
 }
 
@@ -376,6 +415,10 @@ include 'header.php';
                             <input name="confirmpassword" class="form-control" type="password">
                         </div> <!-- form-group end.// -->  
                     </div>
+                    <?php 
+                        echo $error_message 
+                    ?>
+
                     <div class="form-group">
                         <button type="submit" name="btnsignup" class="btn btn-dark btn-block"> Register  </button>
                     </div> <!-- form-group// -->      
